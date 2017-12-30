@@ -1,14 +1,27 @@
+/**
+ * take responsibility of event handling
+ */
 class Room {
+  constructor () {
+    this.game
+  }
 
   handlePlayerJoin () {
-
+    this.game.addPlayer()
   }
 
   handlePlayerLeave () {
-    
+    this.game.removePlayer()
+  }
+
+  handlePlayerReady () {
+
   }
 }
 
+/**
+ * core game logic
+ */
 class Game {
   constructor () {
 
