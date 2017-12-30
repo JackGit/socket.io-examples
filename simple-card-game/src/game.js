@@ -1,3 +1,14 @@
+class Room {
+
+  handlePlayerJoin () {
+
+  }
+
+  handlePlayerLeave () {
+    
+  }
+}
+
 class Game {
   constructor () {
 
