@@ -25,36 +25,9 @@ class Room {
 class Game {
   constructor () {
 
-    this.init()
   }
 
-  init () {
-    this.handleEvents()
-  }
 
-  handleEvents () {
-
-  }
-
-  handlePlayerJoin (player) {
-    this.addPlayer(player)
-
-    if (this.isReadyToStart()) {
-      this.startGame()
-    }
-  }
-
-  handlePlayerLeave (player) {
-    this.removePlayer(player)
-  }
-
-  handlePlayCard (player, card) {
-    this.playCard(player, card)
-
-    if (this.isGameEnd()) {
-      this.endGame()
-    }
-  }
 
   // check if game should end
   isGameEnd () {
@@ -104,15 +77,17 @@ class Game {
 
 }
 
-// usage would be like
-const game = new Game(roomId)
+/* core game logic shouldn't care about async handling */
+const game = new Game()
 
-game.openForJoin()
+game.addPlayer(player)
 
-game.on('playerjoin', () => {})
+if (game.isReadyToState()) {
+  game.start() // shuffle and deal cards
+}
 
-game.on('playerready', () => {})
+game.playCard(player, card)
 
-game.on('allready', () => {})
-
-game.on('dealing', (player, card) => {})
+if (game.isGameOver()) {
+  game.end()
+}
