@@ -2,65 +2,99 @@ const path = require('path')
 const app = require('express')()
 const http = require('http').Server(app)
 const io = require('socket.io')(http)
-const publicDir = path.resolve(__dirname, '../public')
 
-const Room = require('./room')
-const users = {}
+const Game = require('./game')
+const players = {}
 const rooms = {}
 
 app.get('/', function (req, res) {
-  res.sendFile(publicDir.join('/index.html'))
+  res.sendFile(path.resolve(__dirname, '../public/index.html'))
 })
+
+function getRoomDetails (room) {
+  if (typeof room === 'number') {
+    room = rooms[room]
+  }
+
+  return {
+    id: room.id,
+    name: room.name,
+    players: room.game.players.map(p => ({
+      id: p.id,
+      name: p.name
+    }))
+  }
+}
 
 io.on('connection', (socket) => {
   console.log(`a user connected: ${socket.id}`)
 
-  socket.on('user login', user => {
-    users[user.id] = {
-      ...user,
-      socket
+  socket.on('player.login', (player, callback) => {
+    players[player.id] = { player, socket }
+
+    socket.broadcast.emit('player.login', player)
+
+    callback({
+      rooms: Object.values(rooms).map(room => getRoomDetails(room)),
+      players: Object.values(players).map(p => p.player)
+    })
+  })
+
+  socket.on('room.create', ({ roomName, player }, callback) => {
+    const game = new Game()
+    const room = {
+      id: Object.values(rooms).length,
+      name: roomName,
+      game
     }
-    socket.broadcast.emit('user login', user)
-  })
 
-  socket.on('new room', userId => {
-    const room = new Room()
+    game.openForJoin()
     rooms[room.id] = room
-    room.game.openForJoin()
-    socket.broadcast.emit('new room', { roomId: room.id })
 
-    const user = users[userId]
-    room.game.addPlayer(user)
-
-    socket.join(`room ${room.id}`)
-    socket.to(`room ${room.id}`).emit('user join', user)
+    socket.broadcast.emit('room.create', getRoomDetails(room.id))
+    callback(getRoomDetails(room.id))
   })
 
-  socket.on('user join', (userId, roomId) => {
-    const user = users[userId]
+  socket.on('room.player.join', ({ roomId, player }, callback) => {
     const room = rooms[roomId]
-    const roomEmit = socket.to(`room ${room.id}`).emit
-    room.game.addPlayer(user)
+    room.game.addPlayer(player)
+    socket.broadcast.emit('room.player.join', { roomId: roomId, player })
 
-    socket.join(roomId)
-    roomEmit('user join', user)
+    callback(getRoomDetails(roomId))
 
     if (room.game.isReadyToStart()) {
-      room.on('gamestart', roomEmit('game start'))
+      room.game.startGame()
+      io.emit('room.game.start')
 
-      room.on('dealcards', () => {
-        room.games.players.forEach(player => {
-          users[player.id].socket.emit('dealcard', player.cards)
-        })
+      room.game.players.forEach(player => {
+        const playerSocket = players[player.id].socket
+        playerSocket.emit('room.game.dealcards', player.cards)
       })
+
+      io.emit('room.game.token', room.game.getPlayerWithToken().id)
     }
   })
 
-  socket.on('user leave', (userId, roomId) => {
+  socket.on('room.player.leave', (userId, roomId) => {
     const user = users[userId]
     const room = rooms[roomId]
     room.game.removePlayer(user)
     socket.broadcast.emit('user leave', { roomId, user })
+  })
+
+  socket.on('room.game.playcard', ({ roomId, player, card }, callback) => {
+    const { game } = rooms[roomId]
+    game.playCard(player.id, card)
+    socket.broadcast.emit('room.game.playcard', ({ roomId, player, card }))
+
+    if (game.isGameEnd()) {
+      const winner = game.endGame()
+      io.emit('room.game.end', winner)
+    } else {
+      io.emit('room.game.token', game.getPlayerWithToken().id)
+    }
+
+    callback()
   })
 
 })

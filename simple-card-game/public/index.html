@@ -8,7 +8,108 @@
 <body>
   <script src="/socket.io/socket.io.js"></script>
   <script>
+  var now = Date.now()
   var socket = io()
+  var ME = {
+    id: now,
+    name: `Player ${now}`
+  }
+
+  var allRooms = []
+  var loginPlayers = []
+  var currentRoomId = null
+  var myCards = []
+
+  login()
+
+  function listenForEvents () {
+    socket.on('player.login', player => {
+      console.log('player.login', player)
+      loginPlayers.push(player)
+    })
+
+    socket.on('room.create', room => {
+      console.log('a room created', room)
+      allRooms.push(room)
+    })
+
+    socket.on('room.player.join', ({ roomId, player }) => {
+      console.log('room.player.join', roomId, player)
+      const room = allRooms.filter(r => r.id === roomId)[0]
+      room.players.push(player)
+    })
+
+    socket.on('room.player.leave', (room, player) => {
+
+    })
+
+    socket.on('room.game.start', (room, myCards) => {
+      console.log('room.game.start')
+    })
+
+    socket.on('room.game.dealcards', cards => {
+      console.log('dealcards', cards)
+      myCards = cards
+    })
+
+    socket.on('room.game.token', tokenPlayerId => {
+      console.log('token player is', tokenPlayerId)
+      if (ME.id === tokenPlayerId) {
+        console.log('YES I can play card')
+        playCard(myCards[0])
+      }
+    })
+
+    socket.on('room.game.playcard', ({ roomId, player, card }) => {
+      console.log('room.game.playcard', roomId, player, card)
+    })
+
+    socket.on('room.game.end', winner => {
+      console.log('game end, winner is', winner)
+    })
+  }
+
+  function login (name) {
+    socket.emit('player.login', ME, ({ rooms, players }) => {
+      console.log('after login, get rooms', rooms)
+      allRooms = rooms
+      loginPlayers = players
+    })
+
+    listenForEvents()
+  }
+
+  function createRoom (roomName = 'My Room') {
+    socket.emit('room.create', { roomName, player: ME }, room => {
+      console.log('room created', room)
+      joinRoom(room.id)
+      allRooms.push(room)
+    })
+  }
+
+  function joinRoom (roomId) {
+    socket.emit('room.player.join', { roomId, player: ME }, room => {
+      console.log('joined a room', room)
+
+      // add me into the room
+      const targetRoom = allRooms.filter(r => r.id === roomId)[0]
+      targetRoom.players.push(ME)
+
+      currentRoomId = room.id
+    })
+  }
+
+  function leaveRoom () {
+    socket.emit('room.player.leave', { roomId: currentRoomId, player: ME })
+  }
+
+  function playCard (card) {
+    socket.emit('room.game.playcard', { roomId: currentRoomId, player: ME, card }, () => {
+      myCards = myCards.filter(c => c !== card)
+      console.log('play card', card)
+      console.log('cards left', myCards)
+    })
+  }
   </script>
 </body>
 </html>

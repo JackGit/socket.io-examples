@@ -1,3 +1,5 @@
+const _ = require('lodash')
+
 /**
  * core game logic
  */
@@ -30,7 +32,7 @@ class Game {
   }
 
   // add player when "playerjoin"
-  addPlayer (player) {
+  addPlayer (player, autoStart = false) {
     if (this.status !== 'joining') {
       console.warn('game is not open for joining right now')
     } else if (this.players.length === 3) {
@@ -44,7 +46,7 @@ class Game {
 
       console.log('now we have players', this.players)
 
-      if (this.isReadyToStart()) {
+      if (autoStart && this.isReadyToStart()) {
         this.startGame()
       }
     }
@@ -71,6 +73,7 @@ class Game {
     const winner = this.players.sort((p1, p2) => p2.dealedCard - p1.dealedCard)[0]
     this.status = 'completed'
     console.log(`game end, winner is ${winner.name}`)
+    return winner
   }
 
   // shuffle cards before deal
@@ -140,3 +143,5 @@ class Game {
     }
   }
 }
+
+module.exports = Game
