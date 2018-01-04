@@ -87,14 +87,14 @@ io.on('connection', (socket) => {
     game.playCard(player.id, card)
     socket.broadcast.emit('room.game.playcard', ({ roomId, player, card }))
 
+    callback()
+
     if (game.isGameEnd()) {
       const winner = game.endGame()
       io.emit('room.game.end', winner)
     } else {
       io.emit('room.game.token', game.getPlayerWithToken().id)
     }
-
-    callback()
   })
 
 })
