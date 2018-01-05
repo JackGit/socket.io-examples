@@ -19,7 +19,7 @@
     this.allOnlinePlayers = []
 
     this.myInfo = ME
-    this.myRoomId = null
+    this.myRoomId = -1
     this.myCards = []
 
     this.socket = io()
@@ -31,17 +31,15 @@
     constructor: Game,
 
     init: function () {
-      const socket = this.socket
-
-      socket.on('player.login', player => { this.handleNewPlayerJoin(player) })
-      socket.on('room.create', room => { this.handleNewRoom(room) })
-      socket.on('room.player.join', ({ roomId, player }) => { this.handlePlayerJoinedRoom(roomId, player) })
-      socket.on('room.player.leave', ({ roomId, player }) => { this.handlePlayerLeftRoom(roomId, player) })
-      socket.on('room.game.start', () => { this.handleGameStart() })
-      socket.on('room.game.dealcards', cards => { this.handleDealCards(cards) })
-      socket.on('room.game.token', tokenPlayerId => { this.handleTokenChange(tokenPlayerId) })
-      socket.on('room.game.playcard', ({ roomId, player, card }) => { this.handlePlayCard(roomId, playerId, card) })
-      socket.on('room.game.end', winner => { this.handleGameEnd(winner) })
+      this.socket.on('player.login', ({ player, rooms }) => { this.handleNewPlayerLogin(player, rooms) })
+      this.socket.on('room.create', room => { this.handleNewRoom(room) })
+      this.socket.on('room.player.join', ({ roomId, player }) => { this.handlePlayerJoinedRoom(roomId, player) })
+      this.socket.on('room.player.leave', ({ roomId, player }) => { this.handlePlayerLeftRoom(roomId, player) })
+      this.socket.on('room.game.start', () => { this.handleGameStart() })
+      this.socket.on('room.game.dealcards', cards => { this.handleDealCards(cards) })
+      this.socket.on('room.game.token', tokenPlayerId => { this.handleTokenChange(tokenPlayerId) })
+      this.socket.on('room.game.playcard', ({ roomId, player, card }) => { this.handlePlayCard(roomId, player, card) })
+      this.socket.on('room.game.end', winner => { this.handleGameEnd(winner) })
     },
 
     // login and request for all rooms and online players
@@ -65,7 +63,7 @@
     },
 
     getMyRoom: function () {
-      if (this.myRoomId) {
+      if (this.myRoomId !== -1) {
         return this.allRooms.filter(r => r.id === this.myRoomId)[0]
       } else {
         return null
@@ -80,9 +78,13 @@
       })
     },
 
-    handleNewPlayerJoin: function (player) {
-      console.log('A new player just joined', player)
+    handleNewPlayerLogin: function (player, rooms) {
+      console.log('A new player just login', player)
       this.allOnlinePlayers.push(player)
+
+      if (player.id === this.myInfo.id) {
+        this.allRooms = [...rooms]
+      }
     },
 
     handleNewRoom: function (room) {
@@ -100,7 +102,7 @@
       }
 
       const myRoom = this.getMyRoom()
-      myRoom.players.push(player)
+      myRoom && myRoom.players.push(player)
     },
 
     handlePlayerLeftRoom: function (roomId, player) {
@@ -120,18 +122,18 @@
 
       if (tokenPlayerId === this.myInfo.id) {
         console.log('It is my turn to play card!')
-        this.playerCard()
+        this.playCard()
       } else {
         const tokenPlayer = myRoom.players.filter(p => p.id === tokenPlayerId)[0]
         console.log('It turns to player', tokenPlayer)
       }
     },
 
-    handlePlayCard: function (rooId, playerId, card) {
+    handlePlayCard: function (rooId, player, card) {
       const myRoom = this.getMyRoom()
       const player = myRoom.players.filter(p => p.id === playerId)
 
-      if (playerId === this.myInfo.id) {
+      if (player.id === this.myInfo.id) {
         this.myCards = this.myCards.filter(c => c !== card)
         console.log('I play card: ', card)
       } else {

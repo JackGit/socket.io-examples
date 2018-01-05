@@ -31,7 +31,10 @@ io.on('connection', (socket) => {
 
   socket.on('player.login', (player, callback) => {
     players[player.id] = { player, socket }
-    io.emit('player.login', player)
+    io.emit('player.login', {
+      player,
+      rooms: Object.values(rooms).map(room => getRoomDetails(room))
+    })
   })
 
   socket.on('room.create', ({ roomName, player }, callback) => {
@@ -45,7 +48,7 @@ io.on('connection', (socket) => {
     game.openForJoin()
     rooms[room.id] = room
 
-    socket.broadcast.emit('room.create', getRoomDetails(room.id))
+    io.emit('room.create', getRoomDetails(room.id))
     callback && callback(getRoomDetails(room.id))
   })
 
