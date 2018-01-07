@@ -33,12 +33,12 @@
     init: function () {
       this.socket.on('player.login', ({ player, rooms }) => { this.handleNewPlayerLogin(player, rooms) })
       this.socket.on('room.create', room => { this.handleNewRoom(room) })
-      this.socket.on('room.player.join', ({ roomId, player }) => { this.handlePlayerJoinedRoom(roomId, player) })
+      this.socket.on('room.player.join', ({ room, player }) => { this.handlePlayerJoinedRoom(room, player) })
       this.socket.on('room.player.leave', ({ roomId, player }) => { this.handlePlayerLeftRoom(roomId, player) })
       this.socket.on('room.game.start', () => { this.handleGameStart() })
       this.socket.on('room.game.dealcards', cards => { this.handleDealCards(cards) })
       this.socket.on('room.game.token', tokenPlayerId => { this.handleTokenChange(tokenPlayerId) })
-      this.socket.on('room.game.playcard', ({ roomId, player, card }) => { this.handlePlayCard(roomId, player, card) })
+      this.socket.on('room.game.playcard', ({ roomId, playerId, card }) => { this.handlePlayCard(roomId, playerId, card) })
       this.socket.on('room.game.end', winner => { this.handleGameEnd(winner) })
     },
 
@@ -93,16 +93,19 @@
     },
 
     // when i am in a room, handle new player join the room
-    handlePlayerJoinedRoom: function (roomId, player) {
-      console.log('A player joined my room', player)
+    handlePlayerJoinedRoom: function (room, player) {
+      console.log('A player joined my room', room, player)
 
       // me join the room
       if (player.id === this.myInfo.id) {
-        this.myRoomId = roomId
+        this.myRoomId = room.id
+        this.allRooms = this.allRooms.map(r => {
+          return r.id === room.id ? room : r
+        })
+      } else {
+        const myRoom = this.getMyRoom()
+        myRoom && myRoom.players.push(player)
       }
-
-      const myRoom = this.getMyRoom()
-      myRoom && myRoom.players.push(player)
     },
 
     handlePlayerLeftRoom: function (roomId, player) {
@@ -129,9 +132,9 @@
       }
     },
 
-    handlePlayCard: function (rooId, player, card) {
+    handlePlayCard: function (rooId, playerId, card) {
       const myRoom = this.getMyRoom()
-      const player = myRoom.players.filter(p => p.id === playerId)
+      const player = myRoom.players.filter(p => p.id === playerId)[0]
 
       if (player.id === this.myInfo.id) {
         this.myCards = this.myCards.filter(c => c !== card)

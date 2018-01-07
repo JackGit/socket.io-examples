@@ -55,7 +55,10 @@ io.on('connection', (socket) => {
   socket.on('room.player.join', ({ roomId, player }, callback) => {
     const room = rooms[roomId]
     room.game.addPlayer(player)
-    io.emit('room.player.join', { roomId: roomId, player })
+    io.emit('room.player.join', {
+      room: getRoomDetails(room),
+      player
+    })
 
     if (room.game.isReadyToStart()) {
       room.game.startGame()
@@ -77,10 +80,10 @@ io.on('connection', (socket) => {
     io.emit('user leave', { roomId, user })
   })
 
-  socket.on('room.game.playcard', ({ roomId, player, card }, callback) => {
+  socket.on('room.game.playcard', ({ roomId, playerId, card }, callback) => {
     const { game } = rooms[roomId]
-    game.playCard(player.id, card)
-    io.emit('room.game.playcard', ({ roomId, player, card }))
+    game.playCard(playerId, card)
+    io.emit('room.game.playcard', ({ roomId, playerId, card }))
 
     if (game.isGameEnd()) {
       const winner = game.endGame()
