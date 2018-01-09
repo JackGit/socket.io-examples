@@ -44,7 +44,22 @@
 
     // login and request for all rooms and online players
     login: function () {
-      this.socket.emit('player.login', this.myInfo)
+      this.socket.emit('player.login', this.myInfo, () => {
+        this.getOnlinePlayerList()
+        this.getRoomList()
+      })
+    },
+
+    getRoomList: function () {
+      this.socket.emit('room.list', rooms => {
+        console.log('get room list', rooms)
+      })
+    },
+
+    getOnlinePlayerList: function () {
+      this.socket.emit('player.list', players => {
+        console.log('get play list', players)
+      })
     },
 
     // create room and join

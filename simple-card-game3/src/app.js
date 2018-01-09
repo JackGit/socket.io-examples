@@ -31,10 +31,15 @@ io.on('connection', (socket) => {
 
   socket.on('player.login', (player, callback) => {
     players[player.id] = { player, socket }
-    io.emit('player.login', {
-      player,
-      rooms: Object.values(rooms).map(room => getRoomDetails(room))
-    })
+    callback()
+  })
+
+  socket.on('player.list', callback => {
+    callback(Object.values(players).map(p => p.player))
+  })
+
+  socket.on('room.list', (callback) => {
+    callback(Object.values(rooms).map(room => getRoomDetails(room)))
   })
 
   socket.on('room.create', ({ roomName, player }, callback) => {
