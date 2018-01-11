@@ -1,1 +1,1 @@
-apply request / response style of socket.io
+play with sharedb

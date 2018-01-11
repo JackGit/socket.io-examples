@@ -1,5 +1,48 @@
 const path = require('path')
-const app = require('express')()
+const http = require('http')
+const express = require('express')
+
+const ShareDB = require('sharedb')
+const WebSocket = require('ws');
+const WebSocketJSONStream = require('websocket-json-stream')
+
+const backend = new ShareDB();
+createDoc(startServer)
+
+// Create initial document then fire callback
+function createDoc (callback) {
+  const connection = backend.connect()
+  const doc = connection.get('examples', 'counter')
+  doc.fetch(function(err) {
+    if (err) throw err
+    if (doc.type === null) {
+      doc.create({numClicks: 0}, callback)
+      return
+    }
+    callback()
+  })
+}
+
+function startServer() {
+  // Create a web server to serve files and listen to WebSocket connections
+  const app = express();
+  app.use(express.static(path.resolve(__dirname, '../public')))
+
+  const server = http.createServer(app)
+
+  // Connect any incoming WebSocket connection to ShareDB
+  const wss = new WebSocket.Server({ server })
+  wss.on('connection', function(ws, req) {
+    const stream = new WebSocketJSONStream(ws)
+    backend.listen(stream)
+  })
+
+  server.listen(3000)
+  console.log('Listening on http://localhost:3000')
+}
+
+
+/*
 const http = require('http').Server(app)
 const io = require('socket.io')(http)
 
@@ -31,15 +74,10 @@ io.on('connection', (socket) => {
 
   socket.on('player.login', (player, callback) => {
     players[player.id] = { player, socket }
-    callback()
-  })
-
-  socket.on('player.list', callback => {
-    callback(Object.values(players).map(p => p.player))
-  })
-
-  socket.on('room.list', (callback) => {
-    callback(Object.values(rooms).map(room => getRoomDetails(room)))
+    io.emit('player.login', {
+      player,
+      rooms: Object.values(rooms).map(room => getRoomDetails(room))
+    })
   })
 
   socket.on('room.create', ({ roomName, player }, callback) => {
@@ -103,3 +141,4 @@ io.on('connection', (socket) => {
 http.listen(3000, function () {
   console.log('listening on *:3000')
 })
+*/
