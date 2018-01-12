@@ -1519,31 +1519,44 @@ const sharedb = __webpack_require__(8);
 const socket = new WebSocket('ws://' + window.location.host);
 const connection = new sharedb.Connection(socket);
 
-// Create local Doc instance mapped to 'examples' collection document with id 'counter'
-const doc = connection.get('examples', 'counter');
-
-
-// Get initial value of document and subscribe to changes
-doc.subscribe(showNumbers);
-// When document changes (by this client or any other, or the server),
-// update the number on the page
-doc.on('op', showNumbers);
-
-function showNumbers() {
-  document.querySelector('#num-clicks').textContent = doc.data.numClicks;
-};
-
-// When clicking on the '+1' button, change the number in the local
-// document and sync the change to the server and other connected
-// clients
-function increment() {
-  // Increment `doc.data.numClicks`. See
-  // https://github.com/ottypes/json0 for list of valid operations.
-  doc.submitOp([{p: ['numClicks'], na: 1}]);
+const gameDoc = connection.get('Game', 'demoGame')
+const me = {
+  id: Date.now(),
+  name: 'Jack Yang'
 }
 
-// Expose to index.html
-window.increment = increment;
+gameDoc.subscribe(() => {
+  console.log('subscribed game', gameDoc.data)
+})
+
+gameDoc.on('op', () => {
+  console.log('game op', gameDoc.data)
+})
+
+const login = () => {
+  const players = gameDoc.data.players
+  gameDoc.submitOp(
+    [{ p: ['players'], od: players, oi: [...players, me] }]
+  )
+}
+
+const createRoom = roomName => {
+  const rooms = gameDoc.data.rooms
+  gameDoc.submitOp(
+    [{ p: ['rooms'], od: rooms, oi: [...rooms, { id: rooms.length, roomName }] }]
+  )
+}
+
+const joinRoom = roomId => {
+
+}
+
+const leaveRoom = room => {
+
+}
+
+window.login = login
+window.createRoom = createRoom
 
 
 /***/ }),

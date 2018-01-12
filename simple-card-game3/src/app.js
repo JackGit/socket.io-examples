@@ -7,16 +7,19 @@ const WebSocket = require('ws');
 const WebSocketJSONStream = require('websocket-json-stream')
 
 const backend = new ShareDB();
-createDoc(startServer)
+createGameDoc(startServer)
 
-// Create initial document then fire callback
-function createDoc (callback) {
+
+function createGameDoc (callback) {
   const connection = backend.connect()
-  const doc = connection.get('examples', 'counter')
+  const doc = connection.get('Game', 'demoGame')
   doc.fetch(function(err) {
     if (err) throw err
     if (doc.type === null) {
-      doc.create({numClicks: 0}, callback)
+      doc.create({
+        rooms: [],  // created rooms
+        players: [] // online players
+      }, callback)
       return
     }
     callback()
