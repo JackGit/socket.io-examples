@@ -1536,10 +1536,11 @@ gameDoc.on('op', () => {
 
   // can start game ?
   const myRoom = gameDoc.data.rooms.filter(r => r.id === joinedRoomId)[0]
-  if (myRoom && myRoom.players.length === 3 && !myRoom.gameStarted) {
+
+  /* if (myRoom && myRoom.players.length === 3 && !myRoom.gameStarted) {
     console.log('start game')
     window.startGame()
-  }
+  } */
 
   // if this is my token
   if (myRoom && myRoom.tokenPlayerId === me.id) {
@@ -1602,6 +1603,10 @@ window.joinRoom = roomId => {
       [{ p: ['rooms'], od: rooms, oi: rooms.map(r => r.id === roomId ? room : r) }]
     )
     joinedRoomId = roomId
+
+    if (room.players.length === 3) {
+      window.startGame()
+    }
   } else {
     console.error(`room[${roomId}] does not exists`)
   }
