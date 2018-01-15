@@ -1519,6 +1519,7 @@ const sharedb = __webpack_require__(8);
 const socket = new WebSocket('ws://' + window.location.host);
 const connection = new sharedb.Connection(socket);
 
+const NAMES = ['JACK', 'ITEA', 'SAM']
 const gameDoc = connection.get('Game', 'demoGame')
 const me = {
   id: Date.now(),
@@ -1532,10 +1533,23 @@ gameDoc.subscribe(() => {
 
 gameDoc.on('op', () => {
   console.log('game op', gameDoc.data)
+
+  // can start game ?
+  const myRoom = gameDoc.data.rooms.filter(r => r.id === joinedRoomId)[0]
+  if (myRoom && myRoom.players.length === 3 && !myRoom.gameStarted) {
+    console.log('start game')
+    window.startGame()
+  }
+
+  // if this is my token
+  if (myRoom && myRoom.tokenPlayerId === me.id) {
+    console.log('it is my token')
+  }
 })
 
 window.login = () => {
   const players = gameDoc.data.players
+  me.name = NAMES[players.length % NAMES.length]
   gameDoc.submitOp(
     [{ p: ['players'], od: players, oi: [...players, me] }]
   )
@@ -1550,7 +1564,7 @@ window.createRoom = roomName => {
     players: [],
     gameStarted: false,
     gameResult: null,
-    tokenPlayer: null
+    tokenPlayerId: null
   }
 
   gameDoc.submitOp(
@@ -1616,6 +1630,18 @@ window.leaveRoom = () => {
   } else {
     console.error(`room[${roomId}] does not exists`)
   }
+}
+
+window.startGame = () => {
+  const rooms = gameDoc.data.rooms
+  const room = rooms.filter(r => r.id === joinedRoomId)[0]
+
+  room.gameStarted = true
+  room.tokenPlayerId = room.players[0].id
+
+  gameDoc.submitOp(
+    [{ p: ['rooms'], od: rooms, oi: rooms.map(r => r.id === joinedRoomId ? room : r) }]
+  )
 }
 
 

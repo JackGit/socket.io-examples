@@ -4,6 +4,7 @@ const sharedb = require('sharedb/lib/client');
 const socket = new WebSocket('ws://' + window.location.host);
 const connection = new sharedb.Connection(socket);
 
+const NAMES = ['JACK', 'ITEA', 'SAM']
 const gameDoc = connection.get('Game', 'demoGame')
 const me = {
   id: Date.now(),
@@ -19,11 +20,12 @@ gameDoc.on('op', () => {
   console.log('game op', gameDoc.data)
 
   // can start game ?
-  const myRoom = gameDoc.data.rooms.filter(r => r.id === roomId)[0]
-  if (myRoom && myRoom.players.length === 3) {
+  const myRoom = gameDoc.data.rooms.filter(r => r.id === joinedRoomId)[0]
+
+  /* if (myRoom && myRoom.players.length === 3 && !myRoom.gameStarted) {
     console.log('start game')
     window.startGame()
-  }
+  } */
 
   // if this is my token
   if (myRoom && myRoom.tokenPlayerId === me.id) {
@@ -33,6 +35,7 @@ gameDoc.on('op', () => {
 
 window.login = () => {
   const players = gameDoc.data.players
+  me.name = NAMES[players.length % NAMES.length]
   gameDoc.submitOp(
     [{ p: ['players'], od: players, oi: [...players, me] }]
   )
@@ -85,6 +88,10 @@ window.joinRoom = roomId => {
       [{ p: ['rooms'], od: rooms, oi: rooms.map(r => r.id === roomId ? room : r) }]
     )
     joinedRoomId = roomId
+
+    if (room.players.length === 3) {
+      window.startGame()
+    }
   } else {
     console.error(`room[${roomId}] does not exists`)
   }
